@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js'
 import { sendBrevoEmail } from './_brevo.js'
 import { buildCommandeEmail, safeCommandeFilename } from './_commande-email.js'
 
-const SUPABASE_URL = process.env.SUPABASE_URL
-const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://sdlpoamevaqbokqymvsz.supabase.co'
+const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_RLNXU4S6rbh6KZgOVRit9w_E842rQzV'
 const COMMAND_EMAIL_TO = process.env.COMMAND_EMAIL_TO
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
