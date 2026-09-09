@@ -6,11 +6,12 @@
 // avec l'onglet qui permet de la faire. Il est volontairement pur pour être
 // testable.
 
-import type { CommandeFournisseur, Stock } from '../types'
+import type { Camion, CommandeFournisseur, ControleVgp, Stock } from '../types'
+import { isCraneTruck } from './fleet.ts'
 
-export type TaskKind = 'inventaire' | 'stock' | 'commande'
+export type TaskKind = 'securite' | 'inventaire' | 'stock' | 'commande'
 export type TaskSeverity = 'critique' | 'attention'
-export type TaskTab = 'stocks' | 'commandes'
+export type TaskTab = 'stocks' | 'commandes' | 'vgp'
 
 export type Task = {
   id: string
@@ -24,19 +25,82 @@ export type Task = {
 }
 
 export const KIND_LABEL: Record<TaskKind, string> = {
+  securite: 'Sécurité',
   inventaire: 'Inventaire',
   stock: 'Stock',
   commande: 'Commande',
 }
 
-const KIND_ORDER: Record<TaskKind, number> = { inventaire: 0, stock: 1, commande: 2 }
+const DAY = 86_400_000
+const KIND_ORDER: Record<TaskKind, number> = { securite: 0, inventaire: 1, stock: 2, commande: 3 }
+
+// L'échéance est ancrée à midi pour qu'un changement d'heure ne fasse pas
+// basculer le résultat d'un jour ; l'écart tombe donc toujours sur un .5, et
+// c'est floor qui donne le compte juste des deux côtés.
+function daysUntil(dueDate: string, today: Date) {
+  const start = new Date(today)
+  start.setHours(0, 0, 0, 0)
+  return Math.floor((new Date(`${dueDate}T12:00:00`).getTime() - start.getTime()) / DAY)
+}
 
 const plural = (count: number, one: string, many: string) => (count > 1 ? many : one)
 
-export function buildTasks(input: { stocks: Stock[]; orders: CommandeFournisseur[] }): Task[] {
+// Le contrôle retenu est le dernier saisi, pas celui dont l'échéance est la plus
+// lointaine : trier sur l'échéance ferait toujours ressortir la date la plus
+// rassurante.
+function latestVgp(controls: ControleVgp[], truckId: string) {
+  return controls
+    .filter((control) => control.camion_id === truckId && control.controle_type === 'VGP')
+    .sort((left, right) => right.created_at.localeCompare(left.created_at))[0] || null
+}
+
+export function buildTasks(
+  input: { stocks: Stock[]; orders: CommandeFournisseur[]; trucks: Camion[]; controls: ControleVgp[] },
+  today: Date = new Date(),
+): Task[] {
   const tasks: Task[] = []
   const push = (task: Omit<Task, 'rank'>, urgency = 0) =>
     tasks.push({ ...task, rank: (task.severity === 'critique' ? 0 : 1000) + KIND_ORDER[task.kind] * 100 + urgency })
+
+  // — Sécurité : les camions-grues et leur visite générale périodique.
+  for (const truck of input.trucks) {
+    if (!isCraneTruck(truck) || truck.statut.toLowerCase() !== 'actif') continue
+    const control = latestVgp(input.controls, truck.id)
+    if (!control) {
+      push({
+        id: `vgp-manquante-${truck.id}`,
+        kind: 'securite',
+        severity: 'attention',
+        title: `${truck.immatriculation} — aucune VGP enregistrée`,
+        detail: 'Camion-grue sans échéance connue : il échappe à la surveillance tant que la date n’est pas saisie.',
+        action: 'Renseigner',
+        tab: 'vgp',
+      }, 50)
+      continue
+    }
+    const days = daysUntil(control.date_echeance, today)
+    if (days < 0) {
+      push({
+        id: `vgp-echue-${truck.id}`,
+        kind: 'securite',
+        severity: 'critique',
+        title: `${truck.immatriculation} — VGP échue`,
+        detail: `Dépassée de ${-days} ${plural(-days, 'jour', 'jours')}`,
+        action: 'Régulariser',
+        tab: 'vgp',
+      }, Math.max(0, 99 + days))
+    } else if (days <= 30) {
+      push({
+        id: `vgp-proche-${truck.id}`,
+        kind: 'securite',
+        severity: 'attention',
+        title: `${truck.immatriculation} — VGP à planifier`,
+        detail: `Échéance dans ${days} ${plural(days, 'jour', 'jours')}`,
+        action: 'Planifier',
+        tab: 'vgp',
+      }, days)
+    }
+  }
 
   // — Inventaire jamais fait : une seule entrée, sinon dix ruptures noieraient
   //   le reste alors qu'il n'y a qu'une seule action à mener.

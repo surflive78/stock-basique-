@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   Download,
   Eye,
+  HardHat,
   Layers3,
   LogIn,
   LogOut,
@@ -21,6 +22,7 @@ import {
   Search,
   ShieldCheck,
   ShoppingCart,
+  Truck,
   X,
 } from 'lucide-react'
 import type { Session } from '@supabase/supabase-js'
@@ -28,7 +30,9 @@ import { configured, supabase } from './lib/supabase'
 import { writeError } from './lib/db'
 import { buildTasks, KIND_LABEL, type TaskKind } from './lib/tasks'
 import type {
+  Camion,
   CommandeFournisseur,
+  ControleVgp,
   EmplacementStock,
   Fournisseur,
   Groupe,
@@ -41,8 +45,9 @@ import { Empty, Modal, StockBadge } from './components'
 import { movementMeta, statusOf } from './lib/stock'
 import { InventoryAdjustmentForm, LocationsView, OrdersView, ScannerModal, ThresholdForm } from './stockFeatures'
 import { ExportView } from './exportFeatures'
+import { Trucks, TruckForm, VgpView } from './fleetFeatures'
 
-type Tab = 'dashboard' | 'stocks' | 'mouvements' | 'commandes' | 'emplacements' | 'export'
+type Tab = 'dashboard' | 'stocks' | 'mouvements' | 'commandes' | 'emplacements' | 'camions' | 'vgp' | 'export'
 
 type AuthMode = 'login' | 'signup' | 'forgot' | 'recovery'
 
@@ -58,6 +63,8 @@ const tabs = [
   ['mouvements', 'Mouvements', RefreshCw],
   ['commandes', 'Commandes', ShoppingCart],
   ['emplacements', 'Emplacements', MapPin],
+  ['camions', 'Camions', Truck],
+  ['vgp', 'VGP', HardHat],
   ['export', 'Export', Download],
 ] as const
 
@@ -105,6 +112,8 @@ export default function App() {
   const [suppliers, setSuppliers] = useState<Fournisseur[]>([])
   const [locations, setLocations] = useState<EmplacementStock[]>([])
   const [locationStocks, setLocationStocks] = useState<StockEmplacement[]>([])
+  const [trucks, setTrucks] = useState<Camion[]>([])
+  const [vgpControls, setVgpControls] = useState<ControleVgp[]>([])
   const [groups, setGroups] = useState<Groupe[]>([])
   const [selectedGroup, setSelectedGroup] = useState('')
   const [session, setSession] = useState<Session | null>(null)
@@ -117,6 +126,8 @@ export default function App() {
   const [scanner, setScanner] = useState(false)
   const [thresholdStock, setThresholdStock] = useState<Stock | null>(null)
   const [inventoryStock, setInventoryStock] = useState<Stock | null>(null)
+  const [truckForm, setTruckForm] = useState(false)
+  const [editingTruck, setEditingTruck] = useState<Camion | null>(null)
 
   const clearData = useCallback(() => {
     setStocks([])
@@ -125,6 +136,8 @@ export default function App() {
     setSuppliers([])
     setLocations([])
     setLocationStocks([])
+    setTrucks([])
+    setVgpControls([])
   }, [])
 
   const load = useCallback(async () => {
@@ -155,6 +168,14 @@ export default function App() {
         'id,groupe_id,materiel_id,emplacement_id,quantite,updated_at,materiels(nom,code,unite),emplacements_stock(nom,type,disponible)',
       )
       .order('quantite', { ascending: false })
+    let trucksRequest = supabase
+      .from('camions')
+      .select('id,groupe_id,immatriculation,agence,statut,commentaire,est_camion_grue,racine_vehicule,type_vehicule,loueur')
+      .order('immatriculation')
+    let vgpRequest = supabase
+      .from('controles_vgp')
+      .select('id,groupe_id,camion_id,controle_type,date_controle,date_echeance,organisme,resultat,commentaire,created_at,camions(immatriculation,agence,racine_vehicule,type_vehicule,loueur)')
+      .order('date_echeance', { ascending: true })
 
     if (selectedGroup !== ALL_GROUPS) {
       stocksRequest = stocksRequest.eq('groupe_id', selectedGroup)
@@ -162,9 +183,11 @@ export default function App() {
       suppliersRequest = suppliersRequest.eq('groupe_id', selectedGroup)
       locationsRequest = locationsRequest.eq('groupe_id', selectedGroup)
       locationStocksRequest = locationStocksRequest.eq('groupe_id', selectedGroup)
+      trucksRequest = trucksRequest.eq('groupe_id', selectedGroup)
+      vgpRequest = vgpRequest.eq('groupe_id', selectedGroup)
     }
 
-    const [stockResult, moveResult, orderResult, supplierResult, locationResult, locationStockResult] =
+    const [stockResult, moveResult, orderResult, supplierResult, locationResult, locationStockResult, truckResult, vgpResult] =
       await Promise.all([
         stocksRequest,
         fetchAllMovements(selectedGroup),
@@ -172,9 +195,11 @@ export default function App() {
         suppliersRequest,
         locationsRequest,
         locationStocksRequest,
+        trucksRequest,
+        vgpRequest,
       ])
 
-    const results = [stockResult, moveResult, orderResult, supplierResult, locationResult, locationStockResult]
+    const results = [stockResult, moveResult, orderResult, supplierResult, locationResult, locationStockResult, truckResult, vgpResult]
     const firstError = results.find((result) => result.error)?.error
 
     if (firstError) {
@@ -186,6 +211,8 @@ export default function App() {
       setSuppliers((supplierResult.data || []) as Fournisseur[])
       setLocations((locationResult.data || []) as EmplacementStock[])
       setLocationStocks((locationStockResult.data || []) as unknown as StockEmplacement[])
+      setTrucks((truckResult.data || []) as Camion[])
+      setVgpControls((vgpResult.data || []) as unknown as ControleVgp[])
     }
     setLoading(false)
   }, [profile, selectedGroup, session])
@@ -314,6 +341,8 @@ export default function App() {
     setScanner(false)
     setThresholdStock(null)
     setInventoryStock(null)
+    setTruckForm(false)
+    setEditingTruck(null)
   }
 
   const closeMovement = () => {
@@ -433,6 +462,8 @@ export default function App() {
               stocks={stocks}
               moves={moves}
               orders={orders}
+              trucks={trucks}
+              controls={vgpControls}
               groups={groups}
               isAllGroups={isAllGroups}
               currentGroup={selectedGroupInfo}
@@ -468,6 +499,24 @@ export default function App() {
           )}
           {tab === 'emplacements' && (
             <LocationsView locations={locations} locationStocks={locationStocks} showGroups={isAllGroups} />
+          )}
+          {tab === 'camions' && (
+            <Trucks
+              rows={trucks}
+              showGroups={isAllGroups}
+              canEdit={canEdit}
+              onAdd={() => setTruckForm(true)}
+              onEdit={setEditingTruck}
+            />
+          )}
+          {tab === 'vgp' && (
+            <VgpView
+              trucks={trucks}
+              controls={vgpControls}
+              showGroups={isAllGroups}
+              canEdit={canEdit}
+              onReload={load}
+            />
           )}
           {tab === 'export' && canExport && (
             <ExportView moves={moves} orders={orders} groupLabel={isAllGroups ? 'tous-groupes' : selectedGroup} />
@@ -547,6 +596,22 @@ export default function App() {
           }}
         />
       )}
+      {(truckForm || editingTruck) && selectedGroup !== ALL_GROUPS && (
+        <TruckForm
+          truck={editingTruck}
+          groupId={selectedGroup}
+          defaultAgency={selectedGroupInfo?.agence || ''}
+          onClose={() => {
+            setTruckForm(false)
+            setEditingTruck(null)
+          }}
+          onDone={() => {
+            setTruckForm(false)
+            setEditingTruck(null)
+            load()
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -555,6 +620,8 @@ function Dashboard({
   stocks,
   moves,
   orders,
+  trucks,
+  controls,
   groups,
   isAllGroups,
   currentGroup,
@@ -564,6 +631,8 @@ function Dashboard({
   stocks: Stock[]
   moves: Mouvement[]
   orders: CommandeFournisseur[]
+  trucks: Camion[]
+  controls: ControleVgp[]
   groups: Groupe[]
   isAllGroups: boolean
   currentGroup: Groupe | null
@@ -572,7 +641,7 @@ function Dashboard({
 }) {
   const [kindFilter, setKindFilter] = useState<TaskKind | 'all'>('all')
 
-  const tasks = useMemo(() => buildTasks({ stocks, orders }), [stocks, orders])
+  const tasks = useMemo(() => buildTasks({ stocks, orders, trucks, controls }), [stocks, orders, trucks, controls])
 
   const counts = useMemo(() => {
     const map = new Map<TaskKind, number>()
@@ -609,6 +678,7 @@ function Dashboard({
         <div className="hero-figures">
           <div><strong>{units}</strong><span>unités en stock</span></div>
           <div><strong className={counts.get('stock') ? 'warn' : ''}>{counts.get('stock') || 0}</strong><span>alertes stock</span></div>
+          <div><strong className={counts.get('securite') ? 'warn' : ''}>{counts.get('securite') || 0}</strong><span>points sécurité</span></div>
           <div><strong className={pendingOrders ? 'warn' : ''}>{pendingOrders}</strong><span>commandes en attente</span></div>
         </div>
       </section>

@@ -104,3 +104,36 @@ export type Profile = {
   acces_global: boolean
   actif: boolean
 }
+
+export type Camion = {
+  id: string
+  groupe_id: string
+  immatriculation: string
+  agence: string
+  statut: string
+  commentaire: string | null
+  est_camion_grue: boolean
+  racine_vehicule: string | null
+  type_vehicule: string | null
+  loueur: string | null
+}
+
+export type ControleVgp = {
+  id: string
+  groupe_id: string
+  camion_id: string
+  controle_type: 'VGP' | 'Mines' | 'Chronotachygraphe' | 'Limiteur' | 'Treuil'
+  date_controle: string | null
+  date_echeance: string
+  organisme: string | null
+  resultat: 'Valide' | 'Avec observation' | 'Non conforme'
+  commentaire: string | null
+  created_at: string
+  camions: {
+    immatriculation: string
+    agence: string
+    racine_vehicule: string | null
+    type_vehicule: string | null
+    loueur: string | null
+  } | null
+}

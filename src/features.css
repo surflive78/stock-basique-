@@ -214,3 +214,109 @@ option{background:#141414;color:#e9e9e6}
  .worklist-row{align-items:flex-start;flex-direction:column;gap:10px}
  .task-action{width:100%}
 }
+
+/* Camions et VGP */
+.fleet-toolbar{padding-bottom:14px}
+.fleet-toolbar .toolbar{margin-bottom:0}
+.fleet-toolbar .notice{margin:14px 0 0}
+.inactive-toggle{border:0;background:transparent;color:#b0b0aa;font-size:11px;font-weight:700;text-decoration:underline;padding:12px 0 0}
+.truck-card{position:relative;padding-bottom:46px}
+.truck-card.inactive{opacity:.67;background:#161616}
+.truck-card>div{flex:1;min-width:0}
+.fleet-edit{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 9px;display:flex;align-items:center;gap:5px;color:#b8b8b2;font-size:10px;font-weight:700;white-space:nowrap;position:absolute;right:14px;bottom:12px}
+.fleet-edit svg{width:14px;height:14px;padding:0;background:transparent}
+.crane-badge{display:inline-flex!important;align-items:center;gap:5px;margin:3px 0 2px;padding:4px 7px;border-radius:12px;color:#f6c343!important;background:rgba(255,213,0,.16);font-size:9px!important;font-weight:800}
+.crane-badge svg{width:12px;height:12px}
+.crane-badge em{font-style:normal;opacity:.75;font-weight:700}
+
+@media(max-width:720px){
+ .fleet-toolbar .primary{width:100%}
+ .truck-card{padding-bottom:20px;flex-wrap:wrap}
+ .truck-card .fleet-edit{position:static;margin-left:61px}
+ .fleet-edit span{display:inline}
+}
+
+.equipment-stack{display:grid;gap:18px}
+.equipment-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:20px}
+.equipment-heading h2{font:800 clamp(25px,3vw,38px) Manrope;margin:6px 0 7px;letter-spacing:-1px}
+.equipment-heading p{max-width:720px;margin:0;color:#9a9a95;font-size:13px;line-height:1.5}
+.equipment-kicker{display:flex;align-items:center;gap:7px;color:#9a9a95;font-size:10px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase}
+.equipment-kicker svg{width:15px;color:#f6c343}
+.equipment-actions{display:flex;gap:8px}
+.equipment-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.equipment-kpi{position:relative;min-height:128px;padding:18px;border:1px solid var(--line);border-radius:15px;background:var(--surface);display:grid;align-content:end;overflow:hidden}
+.equipment-kpi>svg{position:absolute;top:14px;right:14px;width:34px;height:34px;padding:8px;border-radius:10px;background:#141414}
+.equipment-kpi span,.equipment-kpi small{display:block}
+.equipment-kpi span{color:#9a9a95;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+.equipment-kpi strong{font:800 30px Manrope;margin-top:6px}
+.equipment-kpi.dark{color:#fff;border-color:#111;background:#111}
+.equipment-kpi.dark>svg{background:#292929;color:#fff}
+.equipment-kpi.dark span{color:#b3b3ad}
+.equipment-kpi.warning{border-color:rgba(255,213,0,.55);background:#ffd500}
+.equipment-kpi.warning>svg{background:#fff9cf}
+.equipment-kpi.warning span{color:#5f5000}
+.equipment-kpi.danger{border-color:rgba(255,90,70,.30);background:rgba(255,90,70,.12)}
+.equipment-kpi.danger>svg{color:#ff8a72;background:var(--surface)}
+.equipment-kpi.success{border-color:rgba(52,199,120,.30);background:rgba(52,199,120,.10)}
+.equipment-kpi.success>svg{color:#4ade80;background:var(--surface)}
+.equipment-panel{padding:0;min-width:0}
+.equipment-panel-head{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:16px 18px;border-bottom:1px solid #242424}
+.equipment-panel-head h3{margin:0}
+.equipment-panel-head p{margin:4px 0 0;color:#a3a39d;font-size:11px}
+.equipment-table-wrap{overflow:auto}
+.equipment-table{width:100%;min-width:790px;border-collapse:collapse}
+.equipment-table th{padding:10px 14px;background:#141414;color:#a3a39d;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.7px}
+.equipment-table td{padding:12px 14px;border-top:1px solid #242424;font-size:12px;vertical-align:middle}
+.equipment-name{display:flex;align-items:center;gap:9px}
+.equipment-name>span{width:34px;height:34px;flex:0 0 34px;border-radius:9px;color:#7ec2ff;background:rgba(64,150,255,.16);display:grid;place-items:center}
+.equipment-name>span svg{width:17px}
+.equipment-name b,.equipment-name small{display:block}
+.equipment-name b{font-size:12px}
+.equipment-name small{margin-top:3px;color:#a3a39d;font-size:9px}
+.equipment-status{display:inline-flex;padding:5px 8px;border-radius:14px;font-size:9px;font-weight:800;white-space:nowrap}
+.equipment-status.ok{color:#4ade80;background:rgba(52,199,120,.14)}
+.equipment-status.soon,.equipment-status.missing{color:#f6c343;background:rgba(255,213,0,.14)}
+.equipment-status.late{color:#ff8a72;background:rgba(255,90,70,.12)}
+.equipment-row-actions{display:flex;gap:4px}
+.equipment-row-actions button{width:31px;height:31px;border:1px solid #262626;border-radius:8px;color:#b8b8b2;background:var(--surface);display:grid;place-items:center}
+.equipment-row-actions button:hover{color:#111;border-color:#bdbdb7}
+.equipment-row-actions svg{width:14px}
+.equipment-register-layout{display:grid;grid-template-columns:minmax(0,1fr) 285px;gap:16px;align-items:start}
+.equipment-side{display:grid;gap:14px}
+.vgp-calendar{overflow:hidden;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.vgp-calendar>header{display:flex;align-items:center;justify-content:space-between;padding:17px;color:#fff;background:#111}
+.vgp-calendar>header span{color:#b3b3ad;font-size:9px;text-transform:uppercase;letter-spacing:1.2px}
+.vgp-calendar>header h3{margin:4px 0 0;font:800 17px Manrope}
+.vgp-calendar>header>svg{width:38px;height:38px;padding:9px;border-radius:10px;color:#111;background:var(--yellow)}
+.vgp-calendar>div{padding:5px 14px}
+.vgp-calendar article{display:grid;grid-template-columns:78px 1fr;gap:9px;align-items:center;padding:11px 0;border-bottom:1px solid #242424}
+.vgp-calendar article:last-child{border-bottom:0}
+.calendar-date{padding:7px 5px;border-radius:8px;text-align:center;color:#4ade80;background:rgba(52,199,120,.14);font-size:9px;font-weight:800}
+.calendar-date.late{color:#ff8a72;background:rgba(255,90,70,.12)}
+.calendar-date.soon,.calendar-date.missing{color:#f6c343;background:rgba(255,213,0,.14)}
+.vgp-calendar article b,.vgp-calendar article small{display:block}
+.vgp-calendar article b{font-size:11px}
+.vgp-calendar article small{margin-top:3px;color:#a3a39d;font-size:9px}
+.equipment-help{display:flex;gap:10px;padding:15px;border:1px solid rgba(255,213,0,.35);border-radius:14px;background:rgba(255,213,0,.10)}
+.equipment-help>svg{width:19px;flex:0 0 19px;color:#f6c343}
+.equipment-help h3{margin:0 0 5px;font-size:13px}
+.equipment-help p{margin:0;color:#e0c680;font-size:10px;line-height:1.55}
+
+@media(max-width:1180px){
+ .equipment-kpis{grid-template-columns:repeat(2,1fr)}
+ .equipment-register-layout{grid-template-columns:1fr}
+ .equipment-side{grid-template-columns:1fr 1fr}
+}
+@media(max-width:720px){
+ .equipment-heading{align-items:stretch;flex-direction:column}
+ .equipment-actions{display:grid;grid-template-columns:1fr}
+ .equipment-kpis{grid-template-columns:1fr 1fr}
+ .equipment-kpi{min-height:112px;padding:14px}
+ .equipment-kpi strong{font-size:25px}
+ .equipment-panel-head{align-items:stretch;flex-direction:column}
+ .equipment-side{grid-template-columns:1fr}
+}
+@media(max-width:460px){
+ .equipment-kpis{grid-template-columns:1fr}
+ .equipment-heading h2{font-size:26px}
+}

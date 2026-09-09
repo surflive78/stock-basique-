@@ -917,14 +917,15 @@ grant execute on function private.authorized_for_group(text, user_role[]) to aut
 grant execute on function private.authorized_any_group(user_role[]) to authenticated;
 grant execute on function private.can_read_group(text) to authenticated;
 
--- RPC appelées depuis le client. Le PUBLIC executable par défaut à la
--- création doit être révoqué explicitement, sinon anon garde l'accès même
--- après un revoke ciblé sur anon seul.
-revoke execute on function public.creer_commande(text, jsonb, text, text) from public;
+-- RPC appelées depuis le client. Supabase accorde EXECUTE à la fois à
+-- PUBLIC et, indépendamment, à anon (privilèges par défaut de la
+-- plateforme sur toute nouvelle fonction) : les deux révocations sont
+-- nécessaires, l'une ne supplée pas l'autre.
+revoke execute on function public.creer_commande(text, jsonb, text, text) from public, anon;
 grant execute on function public.creer_commande(text, jsonb, text, text) to authenticated;
-revoke execute on function public.receptionner_commande(uuid, uuid) from public;
+revoke execute on function public.receptionner_commande(uuid, uuid) from public, anon;
 grant execute on function public.receptionner_commande(uuid, uuid) to authenticated;
-revoke execute on function public.ajuster_inventaire_stock(uuid, uuid, integer, text) from public;
+revoke execute on function public.ajuster_inventaire_stock(uuid, uuid, integer, text) from public, anon;
 grant execute on function public.ajuster_inventaire_stock(uuid, uuid, integer, text) to authenticated;
 
 -- ###### ROW LEVEL SECURITY ######
