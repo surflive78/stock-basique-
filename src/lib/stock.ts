@@ -1,0 +1,4 @@
+import { AlertTriangle, ArrowDownToLine, ArrowLeftRight, ArrowUpFromLine, CheckCircle2, PackageX } from 'lucide-react'
+
+export const statusOf=(q:number,s:number)=>q<=0?'rupture':q<=s?'commander':q<=Math.ceil(s*1.5)?'surveiller':'ok'
+export const movementMeta:Record<string,{label:string;icon:typeof ArrowDownToLine,className:string}>={entree:{label:'Entrée dépôt',icon:ArrowDownToLine,className:'in'},retour:{label:'Retour dépôt',icon:ArrowDownToLine,className:'in'},sortie:{label:'Sortie dépôt',icon:ArrowUpFromLine,className:'out'},transfert:{label:'Transfert dépôt à dépôt',icon:ArrowLeftRight,className:'neutral'},hs:{label:'Hors service',icon:AlertTriangle,className:'warn'},perdu:{label:'Perdu',icon:PackageX,className:'warn'},inventaire:{label:'Inventaire dépôt',icon:CheckCircle2,className:'neutral'}}
