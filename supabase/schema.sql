@@ -2,6 +2,7 @@
 -- Instantané correspondant aux migrations :
 --   20260909120000_schema_initiale.sql
 --   20260909210000_ajoute_camions_et_vgp.sql
+--   20260909220000_active_rls_tables_privees.sql
 -- Restauration manuelle : coller ce fichier dans l'éditeur SQL d'un nouveau projet Supabase.
 
 BEGIN;
@@ -1139,5 +1140,15 @@ create policy managers_update_vgp on public.controles_vgp as permissive for upda
 
 create policy managers_delete_vgp on public.controles_vgp as permissive for delete to authenticated
   using (( select private.authorized_for_group(controles_vgp.groupe_id, array['admin'::user_role, 'responsable'::user_role]) as authorized_for_group));
+
+-- Active RLS sur les tables du schéma private, restées sans RLS depuis le
+-- schéma initial. Ces tables ne sont pas exposées par l'API REST (schéma non
+-- exposé) et ne sont modifiées que par des fonctions SECURITY DEFINER
+-- possédées par le rôle postgres, qui contourne RLS en tant que propriétaire
+-- de la table : aucune politique n'est donc nécessaire, seulement l'activation
+-- en profondeur recommandée par Supabase.
+
+alter table "private"."autorisations_comptes" enable row level security;
+alter table "private"."inventaires_stock" enable row level security;
 
 COMMIT;
