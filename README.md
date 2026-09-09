@@ -11,22 +11,24 @@ Version simplifiée : pas de suivi de flotte, de conducteurs, d'ÉPI ni de
 VGP — uniquement le stock (articles, seuils, emplacements) et les
 commandes fournisseurs.
 
+Projet Supabase : `stock-basique` (réf. `sdlpoamevaqbokqymvsz`, région Paris).
+
 ## Configuration
 
-1. Créer un nouveau projet Supabase et y appliquer `supabase/schema.sql`
-   (voir `supabase/LISEZMOI.md`).
-2. Copier `.env.example` vers `.env.local`.
-3. Renseigner `VITE_SUPABASE_URL` et `VITE_SUPABASE_PUBLISHABLE_KEY` avec
-   les valeurs du nouveau projet.
-4. Installer et lancer : `pnpm install`, puis `pnpm dev`.
+1. Copier `.env.example` vers `.env.local`.
+2. Renseigner `VITE_SUPABASE_URL` et `VITE_SUPABASE_PUBLISHABLE_KEY` avec
+   les valeurs du projet Supabase (voir `supabase/LISEZMOI.md` pour créer
+   les comptes autorisés et les groupes/dépôts).
+3. Installer et lancer : `pnpm install`, puis `pnpm dev`.
 
 ## Déploiement
 
-L'application est prévue pour Render via `render.yaml` (Blueprint). Le
-service web sert le build statique et l'API `/api/envoyer-commande`.
+L'application est prévue pour Vercel : build Vite (`pnpm build`, sortie
+`dist/`) et l'API `/api/envoyer-commande` comme fonction serverless
+(fichiers préfixés par `_` non exposés en route).
 
-Variables à renseigner dans le dashboard Render (non versionnées) :
-`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_URL`,
-`VITE_SUPABASE_PUBLISHABLE_KEY`, `BREVO_API_KEY`, `COMMAND_EMAIL_FROM`,
-`COMMAND_EMAIL_TO`. Aucune clé secrète ou `service_role` ne doit être
-exposée au navigateur.
+Variables à renseigner dans le dashboard Vercel (Project Settings →
+Environment Variables) : `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
+`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `BREVO_API_KEY`,
+`COMMAND_EMAIL_FROM`, `COMMAND_EMAIL_TO`. Aucune clé secrète ou
+`service_role` ne doit être exposée au navigateur.

@@ -8,6 +8,8 @@ BEGIN;
 create type public.mouvement_type as enum ('entree', 'sortie', 'retour', 'hs', 'perdu', 'inventaire', 'transfert');
 create type public.user_role as enum ('admin', 'responsable', 'lecture', 'superviseur');
 
+create schema if not exists private;
+
 -- ###### TABLES ET CONTRAINTES ######
 create table if not exists public.groupes (
   id text not null,
@@ -917,11 +919,14 @@ grant execute on function private.authorized_for_group(text, user_role[]) to aut
 grant execute on function private.authorized_any_group(user_role[]) to authenticated;
 grant execute on function private.can_read_group(text) to authenticated;
 
--- RPC appelées depuis le client.
-revoke execute on function public.creer_commande(text, jsonb, text, text) from anon;
+-- RPC appelées depuis le client. Le PUBLIC executable par défaut à la
+-- création doit être révoqué explicitement, sinon anon garde l'accès même
+-- après un revoke ciblé sur anon seul.
+revoke execute on function public.creer_commande(text, jsonb, text, text) from public;
 grant execute on function public.creer_commande(text, jsonb, text, text) to authenticated;
-revoke execute on function public.receptionner_commande(uuid, uuid) from anon;
+revoke execute on function public.receptionner_commande(uuid, uuid) from public;
 grant execute on function public.receptionner_commande(uuid, uuid) to authenticated;
+revoke execute on function public.ajuster_inventaire_stock(uuid, uuid, integer, text) from public;
 grant execute on function public.ajuster_inventaire_stock(uuid, uuid, integer, text) to authenticated;
 
 -- ###### ROW LEVEL SECURITY ######
