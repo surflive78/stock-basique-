@@ -3,7 +3,7 @@ import { AlertTriangle, Boxes, Camera, CheckCircle2, Package, Plus, ScanLine, Se
 import type { IScannerControls } from '@zxing/browser'
 import { supabase } from './lib/supabase'
 import { writeError } from './lib/db'
-import type { CommandeFournisseur, EmplacementStock, Fournisseur, Materiel, Stock, StockEmplacement } from './types'
+import type { CommandeFournisseur, EmplacementStock, Fournisseur, HistoriqueInventaire, Materiel, Stock, StockEmplacement } from './types'
 import { Empty, Modal, StockBadge } from './components'
 
 const orderStatus={
@@ -77,6 +77,18 @@ export function LocationsView({locations,locationStocks,showGroups}:{locations:E
  const [filter,setFilter]=useState<(typeof locationTabs)[number][0]>('depot')
  const visible=filter==='all'?locations:locations.filter(l=>l.type===filter)
  return <section className="panel full"><div className="toolbar"><div><h3>Stock par emplacement</h3><p>Dépôt et matériel indisponible (hors service, perdu).</p></div><span>{locations.length} emplacements</span></div><div className="location-tabs">{locationTabs.map(([id,label])=><button key={id} className={filter===id?'active':''} onClick={()=>setFilter(id)}>{label}</button>)}</div><div className="location-grid">{visible.map(location=>{const Icon=locationIcons[location.type],items=locationStocks.filter(s=>s.emplacement_id===location.id&&s.quantite>0),total=items.reduce((sum,item)=>sum+item.quantite,0);return <article className={`location-card ${location.disponible?'':'unavailable'}`} key={location.id}><header><div className="location-icon"><Icon/></div><div><span>{showGroups&&`${location.groupe_id} · `}{location.type}</span><h3>{location.nom}</h3></div><b>{total}</b></header><div className="location-items">{items.map(item=><div key={item.id}><span>{item.materiels.nom}</span><b>{item.quantite} {item.materiels.unite}</b></div>)}{!items.length&&<span className="location-empty">Aucun article dans cet emplacement</span>}</div></article>})}</div>{!visible.length&&<Empty title="Aucun emplacement" text="Aucun emplacement ne correspond à ce filtre."/>}</section>
+}
+
+const historyDate=new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+
+export function HistoriqueView({rows,showGroups}:{rows:HistoriqueInventaire[];showGroups:boolean}){
+ return <section className="panel full equipment-panel">
+  <div className="equipment-panel-head"><div><h3>Historique des comptages</h3><p>Ajustements d’inventaire, du plus récent au plus ancien.</p></div><span>{rows.length} entrée{rows.length>1?'s':''}</span></div>
+  <div className="equipment-table-wrap"><table className="equipment-table"><thead><tr><th>Date</th>{showGroups&&<th>Groupe</th>}<th>Article</th><th>Emplacement</th><th>Avant → Compté</th><th>Écart</th><th>Saisi par</th><th>Commentaire</th></tr></thead><tbody>
+   {rows.map(row=>{const diff=row.quantite_comptee-row.quantite_avant;return <tr key={row.id}><td>{historyDate.format(new Date(row.created_at))}</td>{showGroups&&<td><span className="group-chip">{row.groupe_id}</span></td>}<td><b>{row.materiel_nom}</b><br/><small>{row.materiel_code}</small></td><td>{row.emplacement_nom}</td><td>{row.quantite_avant} → {row.quantite_comptee}</td><td className={`history-diff ${diff>0?'positive':diff<0?'negative':''}`}>{diff>0?'+':''}{diff}</td><td>{row.saisi_par_nom}</td><td>{row.commentaire||'—'}</td></tr>})}
+  </tbody></table></div>
+  {!rows.length&&<Empty title="Aucun comptage enregistré" text="Les ajustements d’inventaire depuis l’onglet Stocks apparaîtront ici."/>}
+ </section>
 }
 
 export function ScannerModal({stocks,canEdit,onClose,onPick,onReload}:{stocks:Stock[];canEdit:boolean;onClose:()=>void;onPick:(materialId:string,type:string)=>void;onReload:()=>void}){

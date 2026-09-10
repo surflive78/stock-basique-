@@ -105,6 +105,21 @@ export type Profile = {
   actif: boolean
 }
 
+export type HistoriqueInventaire = {
+  id: string
+  groupe_id: string
+  materiel_nom: string
+  materiel_code: string
+  emplacement_nom: string
+  quantite_avant: number
+  quantite_comptee: number
+  stock_global_avant: number
+  stock_global_apres: number
+  commentaire: string | null
+  saisi_par_nom: string
+  created_at: string
+}
+
 export type Camion = {
   id: string
   groupe_id: string

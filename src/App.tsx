@@ -9,6 +9,7 @@ import {
   Download,
   Eye,
   HardHat,
+  History,
   Layers3,
   LogIn,
   LogOut,
@@ -36,6 +37,7 @@ import type {
   EmplacementStock,
   Fournisseur,
   Groupe,
+  HistoriqueInventaire,
   Mouvement,
   Profile,
   Stock,
@@ -43,11 +45,11 @@ import type {
 } from './types'
 import { Empty, Modal, StockBadge } from './components'
 import { movementMeta, statusOf } from './lib/stock'
-import { InventoryAdjustmentForm, LocationsView, OrdersView, ScannerModal, ThresholdForm } from './stockFeatures'
+import { HistoriqueView, InventoryAdjustmentForm, LocationsView, OrdersView, ScannerModal, ThresholdForm } from './stockFeatures'
 import { ExportView } from './exportFeatures'
 import { Trucks, TruckForm, VgpView } from './fleetFeatures'
 
-type Tab = 'dashboard' | 'stocks' | 'mouvements' | 'commandes' | 'emplacements' | 'camions' | 'vgp' | 'export'
+type Tab = 'dashboard' | 'stocks' | 'mouvements' | 'commandes' | 'emplacements' | 'historique' | 'camions' | 'vgp' | 'export'
 
 type AuthMode = 'login' | 'signup' | 'forgot' | 'recovery'
 
@@ -63,6 +65,7 @@ const tabs = [
   ['mouvements', 'Mouvements', RefreshCw],
   ['commandes', 'Commandes', ShoppingCart],
   ['emplacements', 'Emplacements', MapPin],
+  ['historique', 'Historique', History],
   ['camions', 'Camions', Truck],
   ['vgp', 'VGP', HardHat],
   ['export', 'Export', Download],
@@ -114,6 +117,7 @@ export default function App() {
   const [locationStocks, setLocationStocks] = useState<StockEmplacement[]>([])
   const [trucks, setTrucks] = useState<Camion[]>([])
   const [vgpControls, setVgpControls] = useState<ControleVgp[]>([])
+  const [inventoryHistory, setInventoryHistory] = useState<HistoriqueInventaire[]>([])
   const [groups, setGroups] = useState<Groupe[]>([])
   const [selectedGroup, setSelectedGroup] = useState('')
   const [session, setSession] = useState<Session | null>(null)
@@ -138,6 +142,7 @@ export default function App() {
     setLocationStocks([])
     setTrucks([])
     setVgpControls([])
+    setInventoryHistory([])
   }, [])
 
   const load = useCallback(async () => {
@@ -186,8 +191,12 @@ export default function App() {
       trucksRequest = trucksRequest.eq('groupe_id', selectedGroup)
       vgpRequest = vgpRequest.eq('groupe_id', selectedGroup)
     }
+    const historyRequest = supabase.rpc('lister_historique_inventaires', {
+      p_groupe_id: selectedGroup === ALL_GROUPS ? null : selectedGroup,
+      p_limit: 200,
+    })
 
-    const [stockResult, moveResult, orderResult, supplierResult, locationResult, locationStockResult, truckResult, vgpResult] =
+    const [stockResult, moveResult, orderResult, supplierResult, locationResult, locationStockResult, truckResult, vgpResult, historyResult] =
       await Promise.all([
         stocksRequest,
         fetchAllMovements(selectedGroup),
@@ -197,9 +206,10 @@ export default function App() {
         locationStocksRequest,
         trucksRequest,
         vgpRequest,
+        historyRequest,
       ])
 
-    const results = [stockResult, moveResult, orderResult, supplierResult, locationResult, locationStockResult, truckResult, vgpResult]
+    const results = [stockResult, moveResult, orderResult, supplierResult, locationResult, locationStockResult, truckResult, vgpResult, historyResult]
     const firstError = results.find((result) => result.error)?.error
 
     if (firstError) {
@@ -213,6 +223,7 @@ export default function App() {
       setLocationStocks((locationStockResult.data || []) as unknown as StockEmplacement[])
       setTrucks((truckResult.data || []) as Camion[])
       setVgpControls((vgpResult.data || []) as unknown as ControleVgp[])
+      setInventoryHistory((historyResult.data || []) as HistoriqueInventaire[])
     }
     setLoading(false)
   }, [profile, selectedGroup, session])
@@ -499,6 +510,9 @@ export default function App() {
           )}
           {tab === 'emplacements' && (
             <LocationsView locations={locations} locationStocks={locationStocks} showGroups={isAllGroups} />
+          )}
+          {tab === 'historique' && (
+            <HistoriqueView rows={inventoryHistory} showGroups={isAllGroups} />
           )}
           {tab === 'camions' && (
             <Trucks
