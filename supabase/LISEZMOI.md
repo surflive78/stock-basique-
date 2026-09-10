@@ -43,6 +43,7 @@ pour :
 - `receptionner_commande`
 - `enregistrer_controle_vgp_camion`
 - `lister_historique_inventaires`
+- `inviter_utilisateur`
 
 C'est volontaire, pas un trou de sécurité : ce sont les seules portes vers
 des écritures qui touchent plusieurs tables sous une même règle de rôle

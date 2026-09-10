@@ -3,6 +3,7 @@ import {
   ArrowLeftRight,
   BarChart3,
   Boxes,
+  CheckCircle2,
   ChevronRight,
   CircleUserRound,
   ClipboardCheck,
@@ -24,6 +25,7 @@ import {
   ShieldCheck,
   ShoppingCart,
   Truck,
+  UserPlus,
   X,
 } from 'lucide-react'
 import type { Session } from '@supabase/supabase-js'
@@ -132,6 +134,7 @@ export default function App() {
   const [inventoryStock, setInventoryStock] = useState<Stock | null>(null)
   const [truckForm, setTruckForm] = useState(false)
   const [editingTruck, setEditingTruck] = useState<Camion | null>(null)
+  const [inviting, setInviting] = useState(false)
 
   const clearData = useCallback(() => {
     setStocks([])
@@ -330,6 +333,9 @@ export default function App() {
         profile?.role === 'responsable' ||
         profile?.role === 'superviseur'),
   )
+  // Inviter un compte engage le groupe cible : réservé à son admin (ou au
+  // superviseur à accès global), pas au responsable.
+  const canInvite = Boolean(canWrite && (profile?.role === 'admin' || profile?.role === 'superviseur'))
   // L'export est une lecture : pas besoin d'être sur le groupe qu'on modifie,
   // seul le rôle compte.
   const canExport = Boolean(
@@ -444,6 +450,12 @@ export default function App() {
               <button className="scan-btn" onClick={() => setScanner(true)} title="Scanner un article">
                 <ScanLine />
                 <span>Scanner</span>
+              </button>
+            )}
+            {canInvite && (
+              <button className="scan-btn" onClick={() => setInviting(true)} title="Inviter un utilisateur">
+                <UserPlus />
+                <span>Inviter</span>
               </button>
             )}
             {session ? (
@@ -624,6 +636,13 @@ export default function App() {
             setEditingTruck(null)
             load()
           }}
+        />
+      )}
+      {inviting && (
+        <InviteUserForm
+          groups={groups}
+          defaultGroupId={profile?.groupe_id || selectedGroup}
+          onClose={() => setInviting(false)}
         />
       )}
     </div>
@@ -1075,6 +1094,121 @@ function AuthModal({
             Retour à la connexion
           </button>
         )}
+      </form>
+    </Modal>
+  )
+}
+
+function InviteUserForm({
+  groups,
+  defaultGroupId,
+  onClose,
+}: {
+  groups: Groupe[]
+  defaultGroupId: string
+  onClose: () => void
+}) {
+  const [nom, setNom] = useState('')
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState<'admin' | 'responsable' | 'lecture'>('responsable')
+  const [groupId, setGroupId] = useState(defaultGroupId)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    setBusy(true)
+    setError('')
+    const normalizedEmail = email.trim().toLowerCase()
+    const { error: rpcError } = await supabase.rpc('inviter_utilisateur', {
+      p_email: normalizedEmail,
+      p_nom: nom.trim(),
+      p_role: role,
+      p_groupe_id: groupId,
+    })
+    if (rpcError) {
+      setBusy(false)
+      setError(rpcError.message)
+      return
+    }
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      const response = await fetch('/api/inviter-utilisateur', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ email: normalizedEmail, nom: nom.trim(), role, groupe_id: groupId }),
+      })
+      const payload = (await response.json().catch(() => ({}))) as { error?: string }
+      setNotice(
+        response.ok
+          ? `Compte pré-autorisé, invitation envoyée à ${normalizedEmail}.`
+          : `Compte pré-autorisé, mais e-mail non envoyé : ${payload.error || 'service indisponible'}.`,
+      )
+    } catch {
+      setNotice('Compte pré-autorisé, mais e-mail non envoyé (connexion indisponible).')
+    }
+    setBusy(false)
+  }
+
+  if (notice) {
+    return (
+      <Modal title="Inviter un utilisateur" onClose={onClose}>
+        <div className="form">
+          <div className="notice">
+            <CheckCircle2 />
+            {notice}
+          </div>
+          <button className="primary wide" onClick={onClose}>
+            Fermer
+          </button>
+        </div>
+      </Modal>
+    )
+  }
+
+  return (
+    <Modal title="Inviter un utilisateur" onClose={onClose}>
+      <form className="form" onSubmit={submit}>
+        <p>La personne crée elle-même son compte avec cette adresse depuis l’écran de connexion ; ses droits s’appliquent automatiquement dès la première connexion.</p>
+        <label>
+          Nom
+          <input required value={nom} onChange={(event) => setNom(event.target.value)} placeholder="Prénom Nom" />
+        </label>
+        <label>
+          E-mail
+          <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="prenom.nom@exemple.fr" />
+        </label>
+        <div className="field-row">
+          <label>
+            Rôle
+            <select value={role} onChange={(event) => setRole(event.target.value as typeof role)}>
+              <option value="responsable">Responsable</option>
+              <option value="admin">Admin</option>
+              <option value="lecture">Lecture seule</option>
+            </select>
+          </label>
+          <label>
+            Groupe
+            {groups.length > 1 ? (
+              <select value={groupId} onChange={(event) => setGroupId(event.target.value)}>
+                {groups.map((group) => (
+                  <option value={group.id} key={group.id}>
+                    {groupLabel(group)}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input value={groups[0] ? groupLabel(groups[0]) : groupId} disabled />
+            )}
+          </label>
+        </div>
+        {error && <div className="form-error">{error}</div>}
+        <button className="primary wide" disabled={busy || !groupId}>
+          {busy ? 'Envoi…' : 'Inviter'}
+        </button>
       </form>
     </Modal>
   )
