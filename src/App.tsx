@@ -307,6 +307,21 @@ export default function App() {
     if (session && profile && selectedGroup) load()
   }, [load, profile, selectedGroup, session])
 
+  // Barre d'outils Vercel : commentaires épinglés sur la page en prod, lus
+  // directement par Claude. Réservée à l'admin, pour ne pas la montrer aux
+  // comptes de terrain qui n'ont de toute façon pas accès à l'équipe Vercel.
+  useEffect(() => {
+    if (profile?.role !== 'admin') return
+    let cancelled = false
+    import('@vercel/toolbar').then(({ mountVercelToolbar }) => {
+      if (!cancelled) mountVercelToolbar()
+    })
+    return () => {
+      cancelled = true
+      import('@vercel/toolbar').then(({ unmountVercelToolbar }) => unmountVercelToolbar())
+    }
+  }, [profile])
+
   const filtered = useMemo(() => {
     const normalizedQuery = query.toLowerCase()
     return stocks.filter((stock) =>
