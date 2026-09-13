@@ -389,7 +389,7 @@ export default function App() {
     <div className="app">
       <aside className={menu ? 'open' : ''}>
         <div className="brand">
-          <div className="brand-mark"><Boxes /></div>
+          <div className="brand-mark"><img src="/logo.png" alt="" width={26} height={26} /></div>
           <div>
             <strong>Suivi de stock</strong>
             <small>{brandLocation}</small>
