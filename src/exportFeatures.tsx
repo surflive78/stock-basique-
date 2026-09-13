@@ -5,9 +5,9 @@
 
 import { useMemo, useState } from 'react'
 import { Download } from 'lucide-react'
-import type { CommandeFournisseur, Mouvement } from './types'
+import type { CommandeFournisseur, Mouvement, Stock } from './types'
 
-type Dataset = 'mouvements' | 'commandes'
+type Dataset = 'mouvements' | 'commandes' | 'comptage'
 
 type ColumnDef<T> = { key: string; label: string; get: (row: T) => string | number }
 
@@ -32,6 +32,22 @@ const ORDER_COLUMNS: ColumnDef<CommandeFournisseur>[] = [
     label: 'Lignes',
     get: (o) => o.lignes_commande.map((l) => `${l.materiels.code}×${l.quantite_commandee}`).join(' | '),
   },
+]
+
+// Feuille à imprimer ou ouvrir dans un tableur pendant un comptage physique :
+// une ligne par article, triée pour suivre l'ordre de passage dans le dépôt,
+// avec des colonnes vides à remplir à la main (compté, écart, commentaire)
+// plutôt que le théorique seul qui ne sert à rien sur le terrain.
+const COUNT_SHEET_COLUMNS: ColumnDef<Stock>[] = [
+  { key: 'emplacement', label: 'Emplacement', get: (s) => s.emplacement },
+  { key: 'categorie', label: 'Catégorie', get: (s) => s.materiels.categorie },
+  { key: 'code', label: 'Code', get: (s) => s.materiels.code },
+  { key: 'article', label: 'Article', get: (s) => s.materiels.nom },
+  { key: 'unite', label: 'Unité', get: (s) => s.materiels.unite },
+  { key: 'theorique', label: 'Quantité théorique', get: (s) => s.quantite },
+  { key: 'compte', label: 'Compté', get: () => '' },
+  { key: 'ecart', label: 'Écart', get: () => '' },
+  { key: 'commentaire', label: 'Commentaire', get: () => '' },
 ]
 
 function toCsv<T>(rows: T[], columns: ColumnDef<T>[]) {
@@ -59,11 +75,16 @@ function inRange(iso: string | null, start: string, end: string) {
   return true
 }
 
+const columnsFor = (dataset: Dataset) =>
+  dataset === 'mouvements' ? MOVEMENT_COLUMNS : dataset === 'commandes' ? ORDER_COLUMNS : COUNT_SHEET_COLUMNS
+
 export function ExportView({
+  stocks,
   moves,
   orders,
   groupLabel,
 }: {
+  stocks: Stock[]
   moves: Mouvement[]
   orders: CommandeFournisseur[]
   groupLabel: string
@@ -75,11 +96,11 @@ export function ExportView({
     () => new Set(MOVEMENT_COLUMNS.map((c) => c.key)),
   )
 
-  const columnDefs = dataset === 'mouvements' ? MOVEMENT_COLUMNS : ORDER_COLUMNS
+  const columnDefs = columnsFor(dataset)
 
   const chooseDataset = (next: Dataset) => {
     setDataset(next)
-    setColumns(new Set((next === 'mouvements' ? MOVEMENT_COLUMNS : ORDER_COLUMNS).map((c) => c.key)))
+    setColumns(new Set(columnsFor(next).map((c) => c.key)))
   }
 
   const toggleColumn = (key: string) => {
@@ -101,16 +122,31 @@ export function ExportView({
     [orders, start, end],
   )
 
+  // Triée pour suivre le passage physique dans le dépôt plutôt que dans
+  // l'ordre de chargement.
+  const countSheet = useMemo(
+    () =>
+      [...stocks].sort(
+        (a, b) =>
+          a.emplacement.localeCompare(b.emplacement, 'fr') ||
+          a.materiels.categorie.localeCompare(b.materiels.categorie, 'fr') ||
+          a.materiels.nom.localeCompare(b.materiels.nom, 'fr'),
+      ),
+    [stocks],
+  )
+
   const selectedColumns = columnDefs.filter((c) => columns.has(c.key))
-  const rowCount = dataset === 'mouvements' ? rangedMoves.length : rangedOrders.length
+  const rowCount = dataset === 'mouvements' ? rangedMoves.length : dataset === 'commandes' ? rangedOrders.length : countSheet.length
 
   const exportCsv = () => {
     const csv =
       dataset === 'mouvements'
         ? toCsv(rangedMoves, selectedColumns as ColumnDef<Mouvement>[])
-        : toCsv(rangedOrders, selectedColumns as ColumnDef<CommandeFournisseur>[])
-    const period = start || end ? `_${start || '...'}_${end || '...'}` : ''
-    downloadCsv(`${dataset}_${groupLabel}${period}.csv`, csv)
+        : dataset === 'commandes'
+          ? toCsv(rangedOrders, selectedColumns as ColumnDef<CommandeFournisseur>[])
+          : toCsv(countSheet, selectedColumns as ColumnDef<Stock>[])
+    const suffix = dataset === 'comptage' ? `_${new Date().toISOString().slice(0, 10)}` : start || end ? `_${start || '...'}_${end || '...'}` : ''
+    downloadCsv(`${dataset}_${groupLabel}${suffix}.csv`, csv)
   }
 
   return (
@@ -119,7 +155,11 @@ export function ExportView({
         <div className="toolbar">
           <div>
             <h3>Exporter des données</h3>
-            <p>Choisissez le jeu de données, la période et les colonnes à inclure, puis téléchargez le CSV.</p>
+            <p>
+              {dataset === 'comptage'
+                ? 'Une ligne par article, triée pour le passage en dépôt : ouvrez le CSV dans un tableur (ou imprimez-le) pour noter les quantités comptées.'
+                : 'Choisissez le jeu de données, la période et les colonnes à inclure, puis téléchargez le CSV.'}
+            </p>
           </div>
         </div>
 
@@ -129,19 +169,22 @@ export function ExportView({
             <select value={dataset} onChange={(e) => chooseDataset(e.target.value as Dataset)}>
               <option value="mouvements">Mouvements de stock</option>
               <option value="commandes">Commandes fournisseurs</option>
+              <option value="comptage">Feuille de comptage</option>
             </select>
           </label>
 
-          <div className="field-row">
-            <label>
-              Du
-              <input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
-            </label>
-            <label>
-              Au
-              <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
-            </label>
-          </div>
+          {dataset !== 'comptage' && (
+            <div className="field-row">
+              <label>
+                Du
+                <input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+              </label>
+              <label>
+                Au
+                <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
+              </label>
+            </div>
+          )}
 
           <div className="field-row">
             {columnDefs.map((c) => (

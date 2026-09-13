@@ -13,6 +13,7 @@ export type Materiel = {
   categorie: string
   unite: string
   actif: boolean
+  alerte_active: boolean
 }
 
 export type Stock = {

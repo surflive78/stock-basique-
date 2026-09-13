@@ -102,21 +102,26 @@ export function buildTasks(
     }
   }
 
+  // Les vêtements de travail (alerte_active = false) se suivent en quantité
+  // simple : ni file de travail, ni suggestion de commande, une taille en
+  // rupture n'étant pas une urgence opérationnelle comme pour le matériel.
+  const alertableStocks = input.stocks.filter((stock) => stock.materiels.alerte_active)
+
   // — Inventaire jamais fait : une seule entrée, sinon dix ruptures noieraient
   //   le reste alors qu'il n'y a qu'une seule action à mener.
-  const inventoryMissing = input.stocks.length > 0 && input.stocks.every((stock) => stock.quantite === 0)
+  const inventoryMissing = alertableStocks.length > 0 && alertableStocks.every((stock) => stock.quantite === 0)
   if (inventoryMissing) {
     push({
       id: 'inventaire-materiel',
       kind: 'inventaire',
       severity: 'critique',
       title: 'L’inventaire du matériel n’a jamais été saisi',
-      detail: `${input.stocks.length} ${plural(input.stocks.length, 'référence attend sa quantité', 'références attendent leur quantité')} · rien ne peut être commandé avant.`,
+      detail: `${alertableStocks.length} ${plural(alertableStocks.length, 'référence attend sa quantité', 'références attendent leur quantité')} · rien ne peut être commandé avant.`,
       action: 'Compter',
       tab: 'stocks',
     })
   } else {
-    for (const stock of input.stocks) {
+    for (const stock of alertableStocks) {
       if (stock.quantite > stock.seuil_alerte) continue
       const toOrder = Math.max(stock.stock_cible - stock.quantite, 0)
       const unit = stock.materiels.unite.toLowerCase()

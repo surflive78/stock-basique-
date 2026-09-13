@@ -9,10 +9,10 @@ const TODAY = new Date('2026-08-31T09:00:00Z')
 const base = { stocks: [], orders: [], trucks: [], controls: [] }
 const run = (partial) => buildTasks({ ...base, ...partial }, TODAY)
 
-const stock = (id, nom, quantite, seuil = 5, cible = 10) => ({
+const stock = (id, nom, quantite, seuil = 5, cible = 10, alerteActive = true) => ({
   id, groupe_id: 'G1', materiel_id: 'm' + id, quantite, seuil_alerte: seuil, stock_cible: cible,
   emplacement: 'Dépôt', commentaire: null, updated_at: '',
-  materiels: { id: 'm' + id, nom, code: id, unite: 'Pièce', categorie: 'Arrimage', actif: true },
+  materiels: { id: 'm' + id, nom, code: id, unite: 'Pièce', categorie: 'Arrimage', actif: true, alerte_active: alerteActive },
 })
 
 const order = (id, statut, fournisseur = 'ACME', lignes = 1) => ({
@@ -116,6 +116,20 @@ test('un périmètre sain ne produit aucune tâche', () => {
     stocks: [stock('a', 'Sangle', 50, 5)],
     trucks: [crane('t1', 'AA-111-AA')],
     controls: [vgp('t1', '2027-06-01')],
+  })
+  assert.deepEqual(out, [])
+})
+
+test('un article sans alerte active (vêtement) en rupture ne produit aucune tâche', () => {
+  const out = run({
+    stocks: [stock('a', 'Polo taille S', 0, 1, 2, false)],
+  })
+  assert.deepEqual(out, [])
+})
+
+test('un article sans alerte active n’entre pas dans le calcul « inventaire jamais fait »', () => {
+  const out = run({
+    stocks: [stock('a', 'Sangle', 5, 2, 4), stock('b', 'Polo taille S', 0, 1, 2, false)],
   })
   assert.deepEqual(out, [])
 })

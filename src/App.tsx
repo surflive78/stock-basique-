@@ -559,7 +559,7 @@ export default function App() {
             />
           )}
           {tab === 'export' && canExport && (
-            <ExportView moves={moves} orders={orders} groupLabel={isAllGroups ? 'tous-groupes' : selectedGroup} />
+            <ExportView stocks={stocks} moves={moves} orders={orders} groupLabel={isAllGroups ? 'tous-groupes' : selectedGroup} />
           )}
         </div>
 
@@ -854,7 +854,7 @@ function Stocks({
             <span>{stock.materiels.categorie}</span>
             <span>{stock.emplacement}</span>
             <div className="quantity"><strong>{stock.quantite}</strong><small>{stock.materiels.unite}</small></div>
-            <StockBadge q={stock.quantite} seuil={stock.seuil_alerte} />
+            {stock.materiels.alerte_active && <StockBadge q={stock.quantite} seuil={stock.seuil_alerte} />}
             {canEdit && <button className="edit-move inventory-adjust" onClick={() => onInventory(stock)} title={`Ajuster l’inventaire de ${stock.materiels.nom}`}><ClipboardCheck /><span>Ajuster</span></button>}
           </div>
         ))}
