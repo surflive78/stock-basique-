@@ -383,14 +383,13 @@ export default function App() {
     setMovementSeed(null)
   }
 
-  const brandCode = isAllGroups ? 'MULTI' : selectedGroup || 'STOCK'
   const brandLocation = isAllGroups ? 'Vue consolidée' : selectedGroupInfo?.agence || 'Suivi de stock'
 
   return (
     <div className="app">
       <aside className={menu ? 'open' : ''}>
         <div className="brand">
-          <div className={`brand-mark ${isAllGroups ? 'multi' : ''}`}>{brandCode}</div>
+          <div className="brand-mark"><Boxes /></div>
           <div>
             <strong>Suivi de stock</strong>
             <small>{brandLocation}</small>
